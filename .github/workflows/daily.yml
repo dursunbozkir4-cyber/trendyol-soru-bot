@@ -1,0 +1,23 @@
+name: Trendyol Soru Raporu
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # her gun 04:00 UTC = 07:00 Turkiye
+  workflow_dispatch:        # elle de calistirilabilir
+
+jobs:
+  rapor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Raporu olustur ve Telegram'a gonder
+        run: node matcher-cloud.mjs
+        env:
+          TRENDYOL_SELLER_ID: ${{ secrets.TRENDYOL_SELLER_ID }}
+          TRENDYOL_API_KEY: ${{ secrets.TRENDYOL_API_KEY }}
+          TRENDYOL_API_SECRET: ${{ secrets.TRENDYOL_API_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
