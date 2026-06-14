@@ -66,7 +66,6 @@ for (const q of fresh) {
   if (!order && h.orderNo) { order = byNo.get(h.orderNo) || byCargo.get(h.orderNo) || null; if (order) how = "metindeki no"; }
 
   let msg = `🆕 Yeni Trendyol Sorusu\n\nÜrün: ${q.productName}\nSoru: ${q.text}`;
-  if (h.possibleName) msg += `\nOlası isim: ${h.possibleName}`;
   if (order) msg += `\n\n✅ Sipariş: ${order.orderNumber} · ${order.customerFirstName} ${order.customerLastName}\nDurum: ${order.shipmentPackageStatus || ""}${order.cargoTrackingNumber ? "\nKargo: " + order.cargoTrackingNumber : ""}\n(eşleşme: ${how})`;
   else msg += `\n\n❓ Bu müşterinin siparişi bulunamadı (satış öncesi olabilir)`;
   msg += `\n\nCevapla: ${q.webUrl || ""}`;

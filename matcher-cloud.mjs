@@ -75,7 +75,7 @@ try {
   if (matched.length) {
     msg += `\n\n— ÖNCELİKLİ (siparişli) —`;
     matched.slice(0, 10).forEach((m, i) => {
-      msg += `\n\n${i + 1}. ${m.urun.slice(0, 45)}\nSoru: ${m.soru.slice(0, 120)}\nİsim: ${m.isim || "-"}\nSipariş: ${m.no} · ${m.musteri}\nDurum: ${m.durum}\n${m.link}`;
+      msg += `\n\n${i + 1}. ${m.urun.slice(0, 45)}\nSoru: ${m.soru.slice(0, 140)}\nSipariş: ${m.no} · ${m.musteri}\nDurum: ${m.durum}\n${m.link}`;
     });
     if (matched.length > 10) msg += `\n\n... +${matched.length - 10} tane daha (dosyada).`;
   }
@@ -87,7 +87,7 @@ try {
 Bekleyen: ${questions.length} | Eslesen: ${matched.length} | Eslesmeyen: ${unmatched.length}
 
 === ESLESEN (oncelikli) ===
-${matched.map((m, i) => `${i + 1}. ${m.urun}\n  Soru: ${m.soru}\n  Olasi isim: ${m.isim || "-"}\n  Eslesme: ${m.how} | Siparis: ${m.no} | Musteri: ${m.musteri} | Kargo: ${m.kargo} | Durum: ${m.durum}\n  Cevapla: ${m.link}`).join("\n\n") || "(yok)"}
+${matched.map((m, i) => `${i + 1}. ${m.urun}\n  Soru: ${m.soru}\n  Eslesme: ${m.how} | Siparis: ${m.no} | Musteri: ${m.musteri} | Kargo: ${m.kargo} | Durum: ${m.durum}\n  Cevapla: ${m.link}`).join("\n\n") || "(yok)"}
 
 === ESLESMEYEN (siparis no yok) ===
 ${unmatched.map((m, i) => `${i + 1}. ${m.urun}\n  Soru: ${m.soru}\n  Cevapla: ${m.link}`).join("\n\n") || "(yok)"}
