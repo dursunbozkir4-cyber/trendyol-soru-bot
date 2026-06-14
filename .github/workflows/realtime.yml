@@ -1,0 +1,39 @@
+name: Anlik Soru Bildirimi
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # her 5 dakikada bir
+  workflow_dispatch:
+
+concurrency:
+  group: realtime          # ust uste calismasin
+  cancel-in-progress: false
+
+permissions:
+  contents: write          # notified.json'u geri commit edebilmek icin
+
+jobs:
+  bildir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Yeni sorulari bildir
+        run: node notify-new.mjs
+        env:
+          TRENDYOL_SELLER_ID: ${{ secrets.TRENDYOL_SELLER_ID }}
+          TRENDYOL_API_KEY: ${{ secrets.TRENDYOL_API_KEY }}
+          TRENDYOL_API_SECRET: ${{ secrets.TRENDYOL_API_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: Durumu kaydet (notified.json)
+        run: |
+          if [ -n "$(git status --porcelain notified.json)" ]; then
+            git config user.name "trendyol-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add notified.json
+            git commit -m "durum: bildirim listesi guncellendi [skip ci]"
+            git push
+          fi
