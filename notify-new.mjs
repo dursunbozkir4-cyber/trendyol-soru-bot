@@ -9,7 +9,15 @@ const TG_CHAT = process.env.TELEGRAM_CHAT_ID;
 const base = "https://apigw.trendyol.com/integration";
 const H = { Authorization: `Basic ${auth}`, "User-Agent": `${sellerId} - SelfIntegration`, Accept: "application/json" };
 const get = async u => { const r = await fetch(u, { headers: H }); const t = await r.text(); if (r.status !== 200) throw new Error(`HTTP ${r.status}: ${t.slice(0,150)}`); return JSON.parse(t); };
-const tg = async text => { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: TG_CHAT, text, disable_web_page_preview: true }) }); };
+const tg = async text => { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "HTML", disable_web_page_preview: true }) }); };
+
+// HTML parse_mode icin metni kacir (& < > Telegram'i bozar)
+const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// uzun urun adini kisalt
+const kisa = (s, n = 45) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+// Trendyol kargo durumu -> Turkce
+const DURUM = { Created: "Hazırlanıyor", Picking: "Hazırlanıyor", Invoiced: "Faturalandı", Shipped: "Kargoda", AtCollectionPoint: "Şubede", AtBranch: "Şubede", Delivered: "Teslim edildi", Undelivered: "Teslim edilemedi", Cancelled: "İptal", UnSupplied: "Tedarik edilemedi", Returned: "İade", Repack: "Yeniden paketleme" };
+const trDurum = s => DURUM[s] || s || "—";
 
 async function allWaiting() {
   const out = [];
@@ -65,10 +73,15 @@ for (const q of fresh) {
   let how = order ? "customerId" : null;
   if (!order && h.orderNo) { order = byNo.get(h.orderNo) || byCargo.get(h.orderNo) || null; if (order) how = "metindeki no"; }
 
-  let msg = `🆕 Yeni Trendyol Sorusu\n\nÜrün: ${q.productName}\nSoru: ${q.text}`;
-  if (order) msg += `\n\n✅ Sipariş: ${order.orderNumber} · ${order.customerFirstName} ${order.customerLastName}\nDurum: ${order.shipmentPackageStatus || ""}${order.cargoTrackingNumber ? "\nKargo: " + order.cargoTrackingNumber : ""}\n(eşleşme: ${how})`;
-  else msg += `\n\n❓ Bu müşterinin siparişi bulunamadı (satış öncesi olabilir)`;
-  msg += `\n\nCevapla: ${q.webUrl || ""}`;
+  let msg = `━━━━━━━━━━\n🆕 <b>YENİ SORU</b>\n\n💬 <b>${esc(q.text)}</b>\n\n📦 Ürün: ${esc(kisa(q.productName))}`;
+  if (order) {
+    msg += `\n👤 Müşteri: ${esc(order.customerFirstName)} ${esc(order.customerLastName)}`;
+    msg += `\n🧾 Sipariş: #${esc(order.orderNumber)}`;
+    msg += `\n🚚 Durum: ${esc(trDurum(order.shipmentPackageStatus))}`;
+  } else {
+    msg += `\n❓ Sipariş bulunamadı (satış öncesi olabilir)`;
+  }
+  if (q.webUrl) msg += `\n\n👉 <a href="${esc(q.webUrl)}">Cevapla (tıkla)</a>`;
   await tg(msg);
   notified.add(String(q.id));
 }
