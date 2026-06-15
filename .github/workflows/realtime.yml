@@ -1,15 +1,18 @@
 name: Anlik Soru Bildirimi
 
-# GitHub'in */5 cron'u guvenilmez. Bunun yerine: tek is 65 dk boyunca kendi
-# icinde 5 dk'da bir kontrol eder; saatlik (guvenilir) yeniden baslar.
+# GitHub'in zamanli cron'u (schedule) guvenilmez; bu repoda hic atesleme yapmadi.
+# Cozum: is, 55 dk boyunca her 5 dk'da yeni sorulari kontrol eder; bitince
+# bir sonraki kosuyu KENDISI tetikler (DISPATCH_PAT ile). Boylece kesintisiz
+# 5 dk'lik dongu, GitHub cron'una bagimli olmadan suregelir.
+# Yedek olarak saatlik cron da birakildi (calisirsa bonus).
 on:
   schedule:
-    - cron: '3 * * * *'    # her saat (saatlik cron guvenilir calisir)
+    - cron: '3 * * * *'
   workflow_dispatch:
 
 concurrency:
   group: realtime
-  cancel-in-progress: true   # yeni baslayan, eskisini iptal edip devam alir
+  cancel-in-progress: false   # kendini tetikleme zinciri kopmasin
 
 permissions:
   contents: write
@@ -17,13 +20,13 @@ permissions:
 jobs:
   bildir:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: 65 dk boyunca her 5 dk yeni sorulari bildir
+      - name: 55 dk boyunca her 5 dk yeni sorulari bildir
         env:
           TRENDYOL_SELLER_ID: ${{ secrets.TRENDYOL_SELLER_ID }}
           TRENDYOL_API_KEY: ${{ secrets.TRENDYOL_API_KEY }}
@@ -33,7 +36,7 @@ jobs:
         run: |
           git config user.name "trendyol-bot"
           git config user.email "bot@users.noreply.github.com"
-          end=$((SECONDS + 3900))   # ~65 dakika
+          end=$((SECONDS + 3300))   # ~55 dakika
           while [ $SECONDS -lt $end ]; do
             node notify-new.mjs || echo "notify hata (devam)"
             if [ -n "$(git status --porcelain notified.json)" ]; then
@@ -44,3 +47,15 @@ jobs:
             fi
             sleep 300
           done
+
+      # Bir sonraki kosuyu kendi kendine tetikle (GitHub cron'una guvenme).
+      # DISPATCH_PAT = bu repoya 'Actions: Read and write' yetkili fine-grained PAT.
+      - name: Sonraki kosuyu tetikle
+        if: always()
+        run: |
+          curl -sf -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.DISPATCH_PAT }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/realtime.yml/dispatches \
+            -d '{"ref":"main"}' \
+          && echo "Sonraki kosu tetiklendi" || echo "Tetikleme basarisiz (DISPATCH_PAT eksik/yanlis olabilir)"
